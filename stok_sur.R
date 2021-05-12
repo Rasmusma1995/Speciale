@@ -3,6 +3,8 @@ library(readxl)
 library(dplyr)
 library(data.table)
 library(ggplot2)
+library(grid)
+library(latex2exp)
 library(deSolve)
 library(furrr)
 library(gridExtra)
@@ -545,39 +547,54 @@ v_stjerne_bar_circ <- function(sti = NULL, diff=F){
 }
 
 v_stjerne_bar_circ_plot_function <- 
-  function(sti = NULL, diff = F){
+  function(sti = NULL){
     
     time_grid <- seq(0, 65-alder, increment_size)
     
-    tmp <- v_stjerne_bar_circ(sti, diff)
+    tmp <- v_stjerne_bar_circ(sti, T)
+    tmp2 <- v_stjerne_bar_circ(sti, F) %>%
+      mutate(relv0_f = (V_z0_0_true-V_z0_0_forward)/V_z0_0_true*100,
+             relv0_m = (V_z0_0_true-V_z0_0_mean)/V_z0_0_true*100,
+             relv0_s = (V_z0_0_true-V_z0_0_simpel)/V_z0_0_true*100,
+             relv1_f = (V_z0_1_true-V_z0_1_forward)/V_z0_1_true*100,
+             relv1_m = (V_z0_1_true-V_z0_1_mean)/V_z0_1_true*100,
+             relv1_s = (V_z0_1_true-V_z0_1_simpel)/V_z0_1_true*100) %>%
+      select(time, relv0_f, relv0_m, relv0_s,relv1_f, relv1_m, relv1_s)
+    
     
     p0 <- ggplot(data.frame(time_grid),aes(time_grid)) +
       geom_line(aes(y=tmp$V_z0_0_forward, colour="mu_base forward")) +
       geom_line(aes(y=tmp$V_z0_0_mean, colour="mu_base mean")) +
       geom_line(aes(y=tmp$V_z0_0_simpel, colour="mu_base 0")) +
-      xlab("") + ylab("") + theme_bw()
+      xlab("") + ylab(TeX("Expected difference in: $\\bar{V}^*_0(t)$")) + theme_bw()
     
     p1 <- ggplot(data.frame(time_grid),aes(time_grid)) +
       geom_line(aes(y=tmp$V_z0_1_forward, colour="mu_base forward")) +
       geom_line(aes(y=tmp$V_z0_1_mean, colour="mu_base mean")) +
       geom_line(aes(y=tmp$V_z0_1_simpel, colour="mu_base 0")) +
-      xlab("") + ylab("") + theme_bw()
+      xlab("") + ylab(TeX("Expected difference in: $\\bar{V}^*_1(t)$")) + theme_bw()
     
-    if (!diff){
-      p0 <- p0+geom_line(aes(y=tmp$V_z0_0_true, colour="mu_base true"))
-      p1 <- p1+geom_line(aes(y=tmp$V_z0_1_true, colour="mu_base true"))
-    }
+    p2 <- ggplot(data.frame(time_grid),aes(time_grid)) +
+      geom_line(aes(y=tmp2$relv0_f, colour="mu_base forward")) +
+      geom_line(aes(y=tmp2$relv0_m, colour="mu_base mean")) +
+      geom_line(aes(y=tmp2$relv0_s, colour="mu_base 0")) +
+      xlab("") + ylab(TeX("Relative difference in %: $\\bar{V}^*_0(t)$")) + theme_bw()
+    
+    p3 <- ggplot(data.frame(time_grid),aes(time_grid)) +
+      geom_line(aes(y=tmp2$relv1_f, colour="mu_base forward")) +
+      geom_line(aes(y=tmp2$relv1_m, colour="mu_base mean")) +
+      geom_line(aes(y=tmp2$relv1_s, colour="mu_base 0")) +
+      xlab("") + ylab(TeX("Relative difference in %: $\\bar{V}^*_1(t)$")) + theme_bw()
     
     p <- grid.arrange(p0 +  theme(legend.position = "none"),
+                      p2+ theme(legend.position = "none"),
                       p1+ theme(legend.position = "none"),
-                      left = textGrob("Expected difference", rot = 90, vjust = 1),
+                      p3+ theme(legend.position = "none"),
                       bottom = textGrob("Time", vjust = -1))
+
     
   }
 
-v_stjerne_bar_circ_plot_function(diff=F)
-v_stjerne_bar_circ_plot_function(diff=T)
+v_stjerne_bar_circ_plot_function()
 
-v_stjerne_bar_circ_plot_function(1,diff=T)
-v_stjerne_bar_circ_plot_function(1,diff=F)
 
