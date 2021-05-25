@@ -8,6 +8,8 @@ library(grid)
 library(latex2exp)
 library(furrr)
 library(gridExtra)
+library(ggpubr)
+
 
 set.seed(100)
 
@@ -501,32 +503,48 @@ v_stjerne_bar_circ_plot_function <-
       select(time, relv0_m, relv0_s,relv1_m, relv1_s)
     
     p0 <- ggplot(data.frame(time_grid),aes(time_grid)) +
-      geom_line(aes(y=tmp$V_z0_0_mean, colour="mu_base mean")) +
-      geom_line(aes(y=tmp$V_z0_0_simpel, colour="mu_base 0")) +
-      xlab("") + ylab(TeX("Expected difference in: $\\bar{V}^*_0(t)$")) + theme_bw()
+      geom_line(aes(y=tmp$V_z0_0_mean, color = "mean")) +
+      geom_line(aes(y=tmp$V_z0_0_simpel, color = "simple")) +
+      xlab("") + ylab(TeX("Expected difference")) + theme_bw() + ggtitle(TeX("\\{z_0 = 0\\}"))+
+      scale_colour_manual(values = c('mean' = '#CC0000','simple' = 'black'),name = "", 
+                          labels = expression("mean",0))
     
     p1 <- ggplot(data.frame(time_grid),aes(time_grid)) +
-      geom_line(aes(y=tmp$V_z0_1_mean, colour="mu_base mean")) +
-      geom_line(aes(y=tmp$V_z0_1_simpel, colour="mu_base 0")) +
-      xlab("") + ylab(TeX("Expected difference in: $\\bar{V}^*_1(t)$")) + theme_bw()
+      geom_line(aes(y=tmp$V_z0_1_mean, color = "mean")) +
+      geom_line(aes(y=tmp$V_z0_1_simpel, color = "simple")) +
+      xlab("") + ylab(TeX("Expected difference")) + theme_bw() + ggtitle(TeX("\\{z_0 = 1\\}"))+
+      scale_colour_manual(values = c('mean' = '#CC0000','simple' = 'black'),name = "", 
+                          labels = expression("mean",0))
     
     p2 <- ggplot(data.frame(time_grid),aes(time_grid)) +
-      geom_line(aes(y=tmp2$relv0_m, colour="mu_base mean")) +
-      geom_line(aes(y=tmp2$relv0_s, colour="mu_base 0")) +
-      xlab("") + ylab(TeX("Relative difference in %: $\\bar{V}^*_0(t)$")) + theme_bw()
+      geom_line(aes(y=tmp2$relv0_m, color = "mean")) +
+      geom_line(aes(y=tmp2$relv0_s, color = "simple")) +
+      xlab("") + ylab(TeX("Relative difference in %")) + theme_bw() + ggtitle(TeX("\\{z_0 = 0\\}"))+
+      scale_colour_manual(values = c('mean' = '#CC0000','simple' = 'black'),name = "", 
+                          labels = expression("mean",0))
     
     p3 <- ggplot(data.frame(time_grid),aes(time_grid)) +
-      geom_line(aes(y=tmp2$relv1_m, colour="mu_base mean")) +
-      geom_line(aes(y=tmp2$relv1_s, colour="mu_base 0")) +
-      xlab("") + ylab(TeX("Relative difference in %: $\\bar{V}^*_1(t)$")) + theme_bw()
+      geom_line(aes(y=tmp2$relv1_m, color = "mean")) +
+      geom_line(aes(y=tmp2$relv1_s, color = "simple")) +
+      xlab("") + ylab(TeX("Relative difference in %")) + theme_bw() + ggtitle(TeX("\\{z_0 = 1\\}"))+
+      scale_colour_manual(values = c('mean' = '#CC0000','simple' = 'black'),name = "", 
+                          labels = expression("mean",0))
     
-    p <- grid.arrange(p0 +  theme(legend.position = "none"),
-                      p2+ theme(legend.position = "none"),
+    
+    
+    p <- ggarrange(p0 +  theme(legend.position = "none"),
+                   p2+ theme(legend.position = "none"),
                       p1+ theme(legend.position = "none"),
                       p3+ theme(legend.position = "none"),
-                      bottom = textGrob("Time", vjust = -1))
+                      ncol = 2,
+                      nrow = 2,
+                   common.legend = T,
+                   legend = "top")
     
   }
 
 
-v_stjerne_bar_circ_plot_function()
+vplot <- v_stjerne_bar_circ_plot_function()
+
+annotate_figure(vplot,
+                bottom = text_grob("Time", color = "black", vjust=-1, hjust=0))

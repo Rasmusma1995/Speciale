@@ -353,7 +353,7 @@ for (i in 2:ncol(surrender_dat)){
 # plots -------------------------------------------------------------------
 
 ssh_plot_function <- 
-  function(ssh,title , sti = NULL, diff = F, return_dat = F){
+  function(ssh,title , sti = NULL, diff = F, return_dat = F, rel = F, ylab_in = ""){
     
     time_grid <- seq(0, 65-alder, increment_size)
     
@@ -372,7 +372,7 @@ ssh_plot_function <-
       simpel <- transprops_mu_base_0[[ssh]][,sum(sti+1)]
     }
     
-    if (diff){
+    if (diff || rel){
       
       forward <- true-forward 
       mean <- true-mean
@@ -380,15 +380,29 @@ ssh_plot_function <-
       
     }
     
+    if (rel){
+      
+      forward <- forward/true*100
+      mean <- mean/true*100
+      simpel <- simpel/true*100
+    }
+    
+
+    
+    
     p <- ggplot(data.frame(time_grid),aes(time_grid)) +
-      geom_line(aes(y=forward, colour="mu_base forward")) +
-      geom_line(aes(y=mean, colour="mu_base mean")) +
-      geom_line(aes(y=simpel, colour="mu_base 0")) +
-      xlab("Tid") + ylab("Probability") + theme_bw()+
-      ggtitle(title)
+      geom_line(aes(y=forward, color = "forward")) +
+      geom_line(aes(y=mean, color = "mean")) +
+      geom_line(aes(y=simpel, color = "simple")) +
+      xlab("") + ylab(ylab_in) + theme_bw() + ggtitle(title)+
+      scale_colour_manual(values = c('forward' = '#0000CC','mean' = '#CC0000','simple' = 'black'),name ="", 
+                          labels = expression("forward","mean",0))
     
     if (!diff){
-      p <- p+geom_line(aes(y=true, colour="mu_base true"))
+      p <- p+geom_line(aes(y=true, colour="true")) + 
+        scale_colour_manual(values = c('forward' = '#0000CC','mean' = '#CC0000','simple' = 'black',
+                                       'true' = '#FF00FF'),name = expression(mu["base,S"]), 
+                            labels = expression("forward","mean",0, "true"))
     }
     
     if (return_dat)
@@ -397,35 +411,33 @@ ssh_plot_function <-
     return(p)
   }
 
-ssh_plot_function("P00", "P00 stig 1",6,diff = T)
-grid.arrange(ssh_plot_function("P00", "",1,diff = T)  +  theme(legend.position = "none") + ylab("")+ xlab(""),
-             ssh_plot_function("P01", "",1,diff = T) +  theme(legend.position = "none")+ ylab("")+ xlab(""),
-             ssh_plot_function("P10", "",1,diff = T) +  theme(legend.position = "none")+ ylab("")+ xlab(""),
-             ssh_plot_function("P11", "",1,diff = T) +  theme(legend.position = "none")+ ylab("")+ xlab(""),ncol=2,
-             left = textGrob("Difference in path 1", rot = 90, vjust = 1),
-             bottom = textGrob("Time", vjust = -1))
+sshplot1 <- ggarrange(ssh_plot_function("P00", "P00",1,diff = T,  rel = T),
+          ssh_plot_function("P01", "P01",1,diff = T,  rel = T),
+          ssh_plot_function("P10", "P10",1,diff = T,  rel = T),
+          ssh_plot_function("P11", "P11",1,diff = T, rel = T),
+          ncol=2,
+          nrow = 2,
+          common.legend = T,
+          legend = "top")
 
-ssh_plot_function("P00", "P00", diff = F)
-ssh_plot_function("P00", "P00 diff", diff = T)
+annotate_figure(sshplot1,
+                left = text_grob("Relative difference in %. Path 1", color = "black", rot = 90),
+                bottom = text_grob("Time", color = "black", vjust=-1, hjust=0))
 
-ssh_plot_function("P01", "P01 stig 1", 2 ,diff = F)
-ssh_plot_function("P01", "P01", diff = F)
-ssh_plot_function("P01", "P01 diff", diff = T)
+sshplot2 <- ggarrange(ssh_plot_function("P00", "P00",diff = T, rel = T),
+                      ssh_plot_function("P01", "P01",diff = T,  rel = T),
+                      ssh_plot_function("P10", "P10",diff = T,  rel = T),
+                      ssh_plot_function("P11", "P11",diff = T,  rel = T),
+                      ncol=2,
+                      nrow = 2,
+                      common.legend = T,
+                      legend = "top")
 
-ssh_plot_function("P10", "P10 stig 1", 2 ,diff = F)
-ssh_plot_function("P10", "P10", diff = F)
-ssh_plot_function("P10", "P10 diff", diff = T)
+annotate_figure(sshplot2,
+                left = text_grob("Relative difference in %", color = "black", rot = 90),
+                bottom = text_grob("Time", color = "black", vjust=-1, hjust=0))
 
-ssh_plot_function("P11", "P11 stig 1", 2 ,diff = F)
-ssh_plot_function("P11", "P11", diff = F)
-ssh_plot_function("P11", "P11 diff", diff = T)
 
-grid.arrange(ssh_plot_function("P00", "",diff = T)  +  theme(legend.position = "none")+ ylab("")+ xlab(""),
-             ssh_plot_function("P01", "",diff = T) +  theme(legend.position = "none")+ ylab("")+ xlab(""),
-             ssh_plot_function("P10", "",diff = T) +  theme(legend.position = "none")+ ylab("")+ xlab(""),
-             ssh_plot_function("P11", "",diff = T) +  theme(legend.position = "none")+ ylab("")+ xlab(""),ncol=2,
-             left = textGrob("Expected difference", rot = 90, vjust = 1),
-             bottom = textGrob("Time", vjust = -1))
 
 
 # tekniske reserver -------------------------------------------------------
@@ -561,40 +573,54 @@ v_stjerne_bar_circ_plot_function <-
              relv1_s = (V_z0_1_true-V_z0_1_simpel)/V_z0_1_true*100) %>%
       select(time, relv0_f, relv0_m, relv0_s,relv1_f, relv1_m, relv1_s)
     
-    
     p0 <- ggplot(data.frame(time_grid),aes(time_grid)) +
-      geom_line(aes(y=tmp$V_z0_0_forward, colour="mu_base forward")) +
-      geom_line(aes(y=tmp$V_z0_0_mean, colour="mu_base mean")) +
-      geom_line(aes(y=tmp$V_z0_0_simpel, colour="mu_base 0")) +
-      xlab("") + ylab(TeX("Expected difference in: $\\bar{V}^*_0(t)$")) + theme_bw()
+      geom_line(aes(y=tmp$V_z0_0_forward, colour="forward")) +
+      geom_line(aes(y=tmp$V_z0_0_mean, colour="mean")) +
+      geom_line(aes(y=tmp$V_z0_0_simpel, colour="simpel")) +
+      xlab("") + ylab(TeX("Expected difference")) + theme_bw() + ggtitle(TeX("\\{z_0 = 0\\}"))+
+      scale_colour_manual(values = c('forward' = '#0000CC','mean' = '#CC0000','simpel' = 'black'),name = "", 
+                          labels = expression("forward","mean",0))
     
     p1 <- ggplot(data.frame(time_grid),aes(time_grid)) +
-      geom_line(aes(y=tmp$V_z0_1_forward, colour="mu_base forward")) +
-      geom_line(aes(y=tmp$V_z0_1_mean, colour="mu_base mean")) +
-      geom_line(aes(y=tmp$V_z0_1_simpel, colour="mu_base 0")) +
-      xlab("") + ylab(TeX("Expected difference in: $\\bar{V}^*_1(t)$")) + theme_bw()
+      geom_line(aes(y=tmp$V_z0_1_forward, colour="forward")) +
+      geom_line(aes(y=tmp$V_z0_1_mean, colour="mean")) +
+      geom_line(aes(y=tmp$V_z0_1_simpel, colour="simpel")) +
+      xlab("") + ylab(TeX("Expected difference")) + theme_bw() + ggtitle(TeX("\\{z_0 = 1\\}"))+
+      scale_colour_manual(values = c('forward' = '#0000CC','mean' = '#CC0000','simpel' = 'black'),name = "", 
+                          labels = expression("forward","mean",0))
     
     p2 <- ggplot(data.frame(time_grid),aes(time_grid)) +
-      geom_line(aes(y=tmp2$relv0_f, colour="mu_base forward")) +
-      geom_line(aes(y=tmp2$relv0_m, colour="mu_base mean")) +
-      geom_line(aes(y=tmp2$relv0_s, colour="mu_base 0")) +
-      xlab("") + ylab(TeX("Relative difference in %: $\\bar{V}^*_0(t)$")) + theme_bw()
+      geom_line(aes(y=tmp2$relv0_f, colour="forward")) +
+      geom_line(aes(y=tmp2$relv0_m, colour="mean")) +
+      geom_line(aes(y=tmp2$relv0_s, colour="simpel")) +
+      xlab("") + ylab(TeX("Relative difference in %")) + theme_bw() + ggtitle(TeX("\\{z_0 = 0\\}"))+
+      scale_colour_manual(values = c('forward' = '#0000CC','mean' = '#CC0000','simpel' = 'black'),name = "", 
+                          labels = expression("forward","mean",0))
     
-    p3 <- ggplot(data.frame(time_grid),aes(time_grid)) +
-      geom_line(aes(y=tmp2$relv1_f, colour="mu_base forward")) +
-      geom_line(aes(y=tmp2$relv1_m, colour="mu_base mean")) +
-      geom_line(aes(y=tmp2$relv1_s, colour="mu_base 0")) +
-      xlab("") + ylab(TeX("Relative difference in %: $\\bar{V}^*_1(t)$")) + theme_bw()
+    p3 <-  ggplot(data.frame(time_grid),aes(time_grid)) +
+      geom_line(aes(y=tmp2$relv1_f, colour="forward")) +
+      geom_line(aes(y=tmp2$relv1_m, colour="mean")) +
+      geom_line(aes(y=tmp2$relv1_s, colour="simpel")) +
+      xlab("") + ylab(TeX("Relative difference in %")) + theme_bw() + ggtitle(TeX("\\{z_0 = 1\\}"))+
+      scale_colour_manual(values = c('forward' = '#0000CC','mean' = '#CC0000','simpel' = 'black'),name = "", 
+                          labels = expression("forward","mean",0))
+
     
-    p <- grid.arrange(p0 +  theme(legend.position = "none"),
-                      p2+ theme(legend.position = "none"),
-                      p1+ theme(legend.position = "none"),
-                      p3+ theme(legend.position = "none"),
-                      bottom = textGrob("Time", vjust = -1))
+    p <- ggarrange(p0,
+                   p2,
+                   p1,
+                   p3,
+                   ncol=2,
+                   nrow=2,
+                   common.legend = T,
+                   legend = "top")
 
     
   }
 
-v_stjerne_bar_circ_plot_function()
+v_plot <- v_stjerne_bar_circ_plot_function()
+
+annotate_figure(v_plot,
+                bottom = text_grob("Time", color = "black", vjust=-1, hjust=0))
 
 
